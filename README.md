@@ -77,8 +77,7 @@ This can be achieved easily by using ring.middleware.params/wrap-params.
                 [ring.middleware.params :refer [wrap-params]]))
 
     (defn final-handler [request] {:body "Hello world"})
-    (def app (wrap-params
-                (wrap-newrelic-transaction final-handler "my transaction category")))
+    (def app (wrap-newrelic-transaction (wrap-params final-handler) "my transaction category")))
 
 
 ## License
