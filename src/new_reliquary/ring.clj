@@ -65,8 +65,8 @@
        (first)
        (second)))
 
-(deftype NewRelicRingWrapperRequest [req] Request
-  (getRequestURI [_] (resolve-uri req))
+(deftype NewRelicRingWrapperRequest [req key-fn] Request
+  (getRequestURI [_] (key-fn req))
   (getRemoteUser [_] nil)
   (getParameterNames [_] (keys (resolve-query-params req)))
   (getParameterValues [_ name]
@@ -86,14 +86,15 @@
   (doseq [[key value] (sort-by key (seq params))]
     (newrelic/add-custom-parameter key value)))
 
-(defn- web-transaction [request-hander request]
+(defn- web-transaction [request-hander request key-fn]
   (fn []
-    (let [newrelic-req (NewRelicRingWrapperRequest. request)
+    (let [newrelic-req (NewRelicRingWrapperRequest. request key-fn)
           response     (request-hander request)
           newrelic-res (NewRelicRingWrapperResponse. response)]
       (add-query-params (resolve-query-params request))
       (newrelic/set-request-response newrelic-req newrelic-res)
       response)))
 
-(defn wrap-newrelic-transaction [handler]
-  (fn [request] (newrelic/with-newrelic-transaction (web-transaction handler request))))
+(defn wrap-newrelic-transaction [handler & args]
+  (let [kv-args (apply hash-map args)]
+    (fn [request] (newrelic/with-newrelic-transaction (web-transaction handler request (or (kv-args :key-fn) resolve-uri))))))

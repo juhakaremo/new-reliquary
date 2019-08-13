@@ -13,6 +13,13 @@
       (ring/wrap-newrelic-transaction)
       (wrap-params)))
 
+(defn build-app-key-fn [status content-type]
+  (-> (fn [req] {:body    req
+                 :headers {"Content-Type" content-type}
+                 :status  status})
+      (ring/wrap-newrelic-transaction :key-fn #(.toUpperCase (:uri %)))
+      (wrap-params)))
+
 (def set-request-response-calls (atom []))
 (def set-transaction-name-calls (atom []))
 (def add-custom-parameter-calls (atom []))
@@ -88,3 +95,9 @@
       (app (request :get "http://test.fi/dogs"))
       (is (= (get-newrelic-response-content-types) ["text/xml"]))
       (is (= (get-newrelic-response-statuses) [404])))))
+
+(deftest with-custom-key-fn
+  (testing "tracks response status and content type"
+    (let [app (build-app-key-fn 404 "text/xml")]
+      (app (request :get "http://test.fi/dogs"))
+      (is (= (get-newrelic-request-urls) ["/DOGS"])))))
