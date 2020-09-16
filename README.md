@@ -100,6 +100,18 @@ This can be achieved easily by using `ring.middleware.params/wrap-params`.
             (wrap-params)))
 ```
 
+Example with custom uri function:
+
+```clojure
+(ns new-reliquary-example.main
+  (:require [new-reliquary.ring :refer [wrap-newrelic-transaction]]
+            [ring.middleware.params :refer [wrap-params]]))
+
+(defn request-handler [request] {:body "Hello world"})
+(def app (-> request-handler
+            (wrap-newrelic-transaction :key-fn #(.toUpperCase (:uri %)))
+            (wrap-params)))
+```
 
 ## License
 
